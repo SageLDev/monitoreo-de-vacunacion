@@ -23,10 +23,11 @@ namespace Estructuras {
 		int dosis;
 		int clave;
 		float precio;
-		wchar_t descripcion;
+		wchar_t descripcion[500];
 		Vacuna* siguiente;
 		Vacuna* anterior;
 	};
+
 
 	Usuario* uhead = nullptr;
 	Usuario* usuarioActual;
@@ -60,6 +61,46 @@ namespace Estructuras {
 			}
 
 			EndDialog(hWnd, 0);
+		}
+
+		void AltaDeVacuna(HWND hWnd) {
+			Vacuna* ultimo = vhead;
+			Vacuna* nuevo = new Vacuna;
+			wchar_t precio[20];
+
+
+
+			SendMessage(GetDlgItem(hWnd, VACUNAS_ALTA_TIPO), WM_GETTEXT, sizeof(nuevo->tipo) / sizeof(nuevo->tipo[0]), (LPARAM)nuevo->tipo);
+			SendMessage(GetDlgItem(hWnd, VACUNAS_ALTA_MARCA), WM_GETTEXT, sizeof(nuevo->marca) / sizeof(nuevo->marca[0]), (LPARAM)nuevo->marca);
+			SendMessage(GetDlgItem(hWnd, VACUNAS_ALTA_DESCRIPCION), WM_GETTEXT, sizeof(nuevo->descripcion) / sizeof(nuevo->descripcion[0]), (LPARAM)nuevo->descripcion);
+			SendMessage(GetDlgItem(hWnd, VACUNAS_ALTA_PRECIO), WM_GETTEXT, sizeof(precio) / sizeof(precio[0]), (LPARAM)precio);
+			nuevo->precio = wcstof(precio, NULL);
+			nuevo->dosis = GetDlgItemInt(hWnd, VACUNAS_ALTA_DOSIS, NULL, false);
+			nuevo->clave = GetDlgItemInt(hWnd, VACUNAS_ALTA_CLAVE, NULL, false);
+
+			if (nuevo->precio <= 0) {
+				MessageBox(hWnd, L"Favor de introducir un precio mayor a 0", L"Precio invalido", MB_OK);
+			}
+			else {
+				nuevo->siguiente = nullptr;
+				nuevo->anterior = nullptr;
+				if (vhead == nullptr) {
+					vhead = nuevo;
+				}
+				else {
+					while (ultimo->siguiente != nullptr)
+					{
+						ultimo = ultimo->siguiente;
+					}
+					ultimo->siguiente = nuevo;
+					nuevo->anterior = ultimo;
+				}
+
+				EndDialog(hWnd, 0);
+			}
+
+
+	
 		}
 
 		void Login(HWND hWnd) {
@@ -349,6 +390,7 @@ BOOL CALLBACK VacunasAltaProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPa
 	{
 		switch (LOWORD(wParam)) {
 			case BTN_ACEPTAR_VACUNAS_ALTA:
+				Estructuras::validacion.AltaDeVacuna(hWnd);
 				break;
 			case BTN_CERRAR_VACUNAS_ALTA:
 				EndDialog(hWnd, 0);
