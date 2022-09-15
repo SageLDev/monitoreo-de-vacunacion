@@ -45,7 +45,10 @@
 #define VACUNAS_ALTA_CLAVE              1037
 #define VACUNAS_ALTA_PRECIO             1038
 #define VACUNAS_ALTA_DESCRIPCION        1039
-#define TN_CLIENTES_ALTA_IDENTIDAD      1040
+#define BTN_CLIENTES_ALTA_IDENTIDAD     1040
+#define IDC_LIST1                       1041
+#define IDC_LIST_CLIENTES               1041
+#define IDC_LIST_VACUNAS                1043
 #define ID_USUARIO_INICIODESESION       40001
 #define ID_USUARIO_CERRARSESION         40002
 #define ID_VACUNAS_ALTADEVACUNA         40003
@@ -65,7 +68,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        113
 #define _APS_NEXT_COMMAND_VALUE         40012
-#define _APS_NEXT_CONTROL_VALUE         1041
+#define _APS_NEXT_CONTROL_VALUE         1043
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
