@@ -247,8 +247,14 @@ IDD_MENU_PRINCIPAL MENU
 BEGIN
     POPUP "Datos"
     BEGIN
-        MENUITEM "Guardar Datos",               ID_DATOS_GUARDARDATOS
-        MENUITEM "Cargar Datos",                ID_DATOS_CARGARDATOS
+        POPUP "Guardar Datos"
+        BEGIN
+            MENUITEM "Guardar Usuarios",            ID_GUARDARDATOS_GUARDARUSUARIOS
+        END
+        POPUP "Cargar Datos"
+        BEGIN
+            MENUITEM "Cargar Usuarios",             ID_CARGARDATOS_CARGARUSUARIOS
+        END
     END
     POPUP "Usuario"
     BEGIN
