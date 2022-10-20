@@ -86,6 +86,7 @@ END
 IDD_USUARIO_INICIO_SESION DIALOGEX 0, 0, 309, 176
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Inicio de sesion"
+MENU IDD_LOGIN
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     PUSHBUTTON      "Cerrar",BTN_CERRAR_USUARIO_INICIO,252,155,50,14
@@ -262,7 +263,6 @@ BEGIN
     END
     POPUP "Usuario"
     BEGIN
-        MENUITEM "Inicio de sesion",            ID_USUARIO_INICIODESESION
         MENUITEM "Registro de usuario",         ID_USUARIO_REGISTRODEUSUARIO
         MENUITEM "Cerrar sesion",               ID_USUARIO_CERRARSESION
     END
@@ -275,6 +275,25 @@ BEGIN
     BEGIN
         MENUITEM "Alta de cliente",             ID_CLIENTES_ALTADECLIENTE
         MENUITEM "Baja de cliente",             ID_CLIENTES_BAJADECLIENTE
+    END
+END
+
+IDD_LOGIN MENU
+BEGIN
+    POPUP "Datos"
+    BEGIN
+        POPUP "Guardar"
+        BEGIN
+            MENUITEM "Guardar Usuarios",            ID_GUARDARDATOS_GUARDARUSUARIOS
+        END
+        POPUP "Cargar"
+        BEGIN
+            MENUITEM "Cargar Usuarios",             ID_CARGARDATOS_CARGARUSUARIOS
+        END
+    END
+    POPUP "Registro"
+    BEGIN
+        MENUITEM "Registro de usuario",         ID_USUARIO_REGISTRODEUSUARIO
     END
 END
 

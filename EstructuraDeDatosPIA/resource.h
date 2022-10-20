@@ -8,6 +8,8 @@
 #define IDD_USUARIO_INICIO_SESION       107
 #define IDD_VACUNAS_ALTA                109
 #define IDD_CLIENTES_ALTA               111
+#define IDR_MENU1                       113
+#define IDD_LOGIN                       113
 #define BTN_CERRAR_CLIENTES_ALTA        1003
 #define CLIENTES_ALTA_APELLIDO_PATERNO  1004
 #define CLIENTES_ALTA_CURP              1005
@@ -46,7 +48,6 @@
 #define VACUNAS_ALTA_PRECIO             1038
 #define VACUNAS_ALTA_DESCRIPCION        1039
 #define BTN_CLIENTES_ALTA_IDENTIDAD     1040
-#define IDC_LIST1                       1041
 #define IDC_LIST_CLIENTES               1041
 #define IDC_LIST_VACUNAS                1043
 #define ID_USUARIO_INICIODESESION       40001
@@ -60,14 +61,19 @@
 #define ID_DATOS_CARGARDATOS            40009
 #define ID_GUARDARDATOS_GUARDARUSUARIOS 40010
 #define ID_CARGARDATOS_CARGARUSUARIOS   40011
+#define ID_DATOS_GUARDAR                40012
+#define ID_GUARDAR_GUARDARUSUARIOS      40013
+#define ID_DATOS_CARGAR                 40014
+#define ID_CARGAR_CARGARUSUARIOS        40015
+#define ID_USUARIO_REGISTRARUSUARIO     40016
 #define IDC_STATIC                      -1
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        113
-#define _APS_NEXT_COMMAND_VALUE         40012
+#define _APS_NEXT_RESOURCE_VALUE        114
+#define _APS_NEXT_COMMAND_VALUE         40017
 #define _APS_NEXT_CONTROL_VALUE         1043
 #define _APS_NEXT_SYMED_VALUE           101
 #endif

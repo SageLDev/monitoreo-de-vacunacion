@@ -3,8 +3,20 @@
 #include <fstream>
 #include <CommCtrl.h>
 
+// GitHub repo: https://github.com/SageLDev/monitoreo-de-vacunacion
+
 using namespace std;
 
+
+HWND ghDlg = 0;
+HINSTANCE hInstGlobal;
+
+LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+BOOL CALLBACK PrincipalProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+BOOL CALLBACK LoginProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+BOOL CALLBACK RegistroProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+BOOL CALLBACK VacunasAltaProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+BOOL CALLBACK ClientesAltaProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
 
 namespace Estructuras {
@@ -221,7 +233,7 @@ namespace Estructuras {
 			SendMessage(GetDlgItem(hWnd, INICIO_CONTRA), WM_GETTEXT, sizeof(contrasenaIngresada) / sizeof(contrasenaIngresada[0]), (LPARAM)contrasenaIngresada);
 
 			Usuario* ptr = uhead;
-			bool encontrado;
+			bool encontrado = false;
 			if (ptr == nullptr) {
 				MessageBox(hWnd, L"Favor de registrarse o cargar los datos del programa", L"No hay usuarios registrados", MB_OK);
 			}
@@ -232,7 +244,6 @@ namespace Estructuras {
 						encontrado = true;
 						usuarioActual = ptr;
 						EndDialog(hWnd, 0);
-						return;
 					}
 					else {
 						encontrado = false;
@@ -242,8 +253,11 @@ namespace Estructuras {
 				if (encontrado == false) {
 					MessageBox(hWnd, L"No encontramos un usuario con esas credenciales.", L"Usuario no encontrado", MB_OK);
 				}
-
+				else {
+					DialogBox(hInstGlobal, MAKEINTRESOURCE(IDD_PANTALLA_INICIAL), hWnd, (DLGPROC)PrincipalProc);
+				}
 			}
+			
 		}
 
 		void actualizarListBoxVacunas(HWND hWnd) {
@@ -346,25 +360,10 @@ namespace Estructuras {
 
 
 
-
-
-
-
-
-HWND ghDlg = 0;
-HINSTANCE hInstGlobal;
-
-LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
-BOOL CALLBACK PrincipalProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
-BOOL CALLBACK LoginProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
-BOOL CALLBACK RegistroProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
-BOOL CALLBACK VacunasAltaProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
-BOOL CALLBACK ClientesAltaProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
-
 int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ PWSTR pCmdLine, _In_ int nCmdShow)
 {
 	hInstGlobal = hInstance;
-	ghDlg = CreateDialog(hInstance, MAKEINTRESOURCE(IDD_PANTALLA_INICIAL), 0, (DLGPROC)PrincipalProc);
+	ghDlg = CreateDialog(hInstance, MAKEINTRESOURCE(IDD_USUARIO_INICIO_SESION), 0, (DLGPROC)LoginProc);
 	ShowWindow(ghDlg, nCmdShow);
 	MSG msg;
 	ZeroMemory(&msg, sizeof(MSG));
@@ -409,14 +408,13 @@ BOOL CALLBACK PrincipalProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 			case ID_CARGARDATOS_CARGARUSUARIOS:
 				Estructuras::validacion.CargarUsuarios(hWnd);
 				break;
-			case ID_USUARIO_INICIODESESION:
-				DialogBox(hInstGlobal, MAKEINTRESOURCE(IDD_USUARIO_INICIO_SESION), hWnd, (DLGPROC)LoginProc);
-				break;
 			case ID_USUARIO_REGISTRODEUSUARIO:
 				DialogBox(hInstGlobal, MAKEINTRESOURCE(IDD_USUARIO_REGISTRO), hWnd, (DLGPROC)RegistroProc);
 				break;
 			case ID_USUARIO_CERRARSESION:
-				break;
+				EndDialog(hWnd, 0);
+				DialogBox(hInstGlobal, MAKEINTRESOURCE(IDD_USUARIO_INICIO_SESION), hWnd, (DLGPROC)LoginProc);
+				return true;
 
 			case ID_VACUNAS_ALTADEVACUNA:
 				DialogBox(hInstGlobal, MAKEINTRESOURCE(IDD_VACUNAS_ALTA), hWnd, (DLGPROC)VacunasAltaProc);
@@ -459,19 +457,38 @@ BOOL CALLBACK LoginProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case WM_COMMAND:
 		{
 			switch (LOWORD(wParam)) {
+
+				case ID_GUARDARDATOS_GUARDARUSUARIOS:
+				Estructuras::validacion.GuardarUsuarios(hWnd);
+				break;
+
+				case ID_CARGARDATOS_CARGARUSUARIOS:
+					Estructuras::validacion.CargarUsuarios(hWnd);
+				break;
+
+				case ID_USUARIO_REGISTRODEUSUARIO:
+				DialogBox(hInstGlobal, MAKEINTRESOURCE(IDD_USUARIO_REGISTRO), hWnd, (DLGPROC)RegistroProc);
+				break;
+
 				case BTN_ACEPTAR_USUARIO_INICIO:
 					Estructuras::validacion.Login(hWnd);
+					Estructuras::validacion.actualizarListBoxClientes(hWnd);
 				break;
 
 				case BTN_CERRAR_USUARIO_INICIO:
-					EndDialog(hWnd, 0);
+					DestroyWindow(ghDlg);
 					return true;
 			}
 
 		} break;
 		case WM_CLOSE:
 		{
-			EndDialog(hWnd, 0);
+			DestroyWindow(ghDlg);
+			return true;
+		}
+		case WM_DESTROY:
+		{
+			PostQuitMessage(0);
 			return true;
 		}
 
