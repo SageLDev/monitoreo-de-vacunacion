@@ -2,7 +2,8 @@
 #include "resource.h"
 #include <fstream>
 #include <CommCtrl.h>
-
+#include <cstdlib>
+#include <algorithm>
 // GitHub repo: https://github.com/SageLDev/monitoreo-de-vacunacion
 
 using namespace std;
@@ -17,6 +18,9 @@ BOOL CALLBACK LoginProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 BOOL CALLBACK RegistroProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 BOOL CALLBACK VacunasAltaProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 BOOL CALLBACK ClientesAltaProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+BOOL CALLBACK CarnetsAltaProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+BOOL CALLBACK CarnetsBusquedaProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+
 
 
 namespace Estructuras {
@@ -26,8 +30,10 @@ namespace Estructuras {
 		wchar_t apellidoPaterno[200];
 		wchar_t apellidoMaterno[200];
 		wchar_t nombres[500];
+		int ID;
 		Usuario* siguiente;
 		Usuario* anterior;
+	
 	};
 
 	typedef struct Vacuna {
@@ -37,6 +43,8 @@ namespace Estructuras {
 		int clave;
 		float precio;
 		wchar_t descripcion[500];
+		int ID;
+		int usuarioID;
 		Vacuna* siguiente;
 		Vacuna* anterior;
 	};
@@ -59,8 +67,26 @@ namespace Estructuras {
 		SYSTEMTIME nacimiento;
 		wchar_t imagen[500];
 		bool vacunado = false;
+		int ID;
+		int usuarioID;
 		Cliente* siguiente;
 		Cliente* anterior;
+	};
+
+	typedef struct Carnet {
+
+		int usuarioID;
+		int vacunaID;
+		int clienteID;
+		int dosis;
+		SYSTEMTIME fechaDosis;
+		int lote;
+		wchar_t centroDeVacunacion[500];
+		int ID;
+		wchar_t clienteCURP[200];
+		wchar_t clienteNombre[200];
+		Carnet* siguiente;
+		Carnet* anterior;
 	};
 
 	Usuario* uhead = nullptr;
@@ -68,9 +94,15 @@ namespace Estructuras {
 
 	Vacuna* vhead = nullptr;
 	Vacuna* vacunaActual;
+	Vacuna* vacunaSeleccionada;
 
 	Cliente* chead = nullptr;
 	Cliente* clienteActual;
+	Cliente* clienteSeleccionado;
+
+	Carnet* rhead = nullptr;
+	Carnet* carnetActual;
+
 
 	wchar_t direccionImagenCliente[500];
 
@@ -84,6 +116,8 @@ namespace Estructuras {
 			SendMessage(GetDlgItem(hWnd, REGISTRO_APELLIDO_PATERNO), WM_GETTEXT, sizeof(nuevo->apellidoPaterno) / sizeof(nuevo->apellidoPaterno[0]), (LPARAM)nuevo->apellidoPaterno);
 			SendMessage(GetDlgItem(hWnd, REGISTRO_APELLIDO_MATERNO), WM_GETTEXT, sizeof(nuevo->apellidoMaterno) / sizeof(nuevo->apellidoMaterno[0]), (LPARAM)nuevo->apellidoMaterno);
 			SendMessage(GetDlgItem(hWnd, REGISTRO_NOMBRE), WM_GETTEXT, sizeof(nuevo->nombres) / sizeof(nuevo->nombres[0]), (LPARAM)nuevo->nombres);
+			srand(time(0));
+			nuevo->ID = rand();
 			nuevo->siguiente = nullptr;
 			nuevo->anterior = nullptr;
 			if (uhead == nullptr) {
@@ -115,6 +149,9 @@ namespace Estructuras {
 			nuevo->precio = wcstof(precio, NULL);
 			nuevo->dosis = GetDlgItemInt(hWnd, VACUNAS_ALTA_DOSIS, NULL, false);
 			nuevo->clave = GetDlgItemInt(hWnd, VACUNAS_ALTA_CLAVE, NULL, false);
+			nuevo->usuarioID = usuarioActual->ID;
+			srand(time(0));
+			nuevo->ID = rand();
 
 			if (nuevo->precio <= 0) {
 				MessageBox(hWnd, L"Favor de introducir un precio mayor a 0", L"Precio invalido", MB_OK);
@@ -177,6 +214,9 @@ namespace Estructuras {
 			SendMessage(GetDlgItem(hWnd, CLIENTES_ALTA_PERFIL_RIESGO), WM_GETTEXT, sizeof(nuevo->perfilDeRiesgo) / sizeof(nuevo->perfilDeRiesgo[0]), (LPARAM)nuevo->perfilDeRiesgo);
 			SendDlgItemMessage(hWnd, CLIENTES_ALTA_NACIMIENTO, DTM_GETSYSTEMTIME, NULL, (LPARAM) & (nuevo->nacimiento));
 			wcscpy_s(nuevo->imagen, direccionImagenCliente);
+			nuevo->usuarioID = usuarioActual->ID;
+			srand(time(0));
+			nuevo->ID = rand();
 
 			Cliente* aux = chead;
 			bool error = false;
@@ -226,6 +266,129 @@ namespace Estructuras {
 
 		}
 
+		void AltaDeCarnet(HWND hWnd) {
+			Carnet* ultimo = rhead;
+			Carnet* nuevo = new Carnet;
+
+			int cSeleccionado = SendDlgItemMessage(hWnd, IDC_CARNET_CLIENTE, LB_GETCURSEL, NULL, NULL);
+			int vSeleccionado = SendDlgItemMessage(hWnd, IDC_CARNET_VACUNAS, LB_GETCURSEL, NULL, NULL);
+			if (cSeleccionado == -1 || vSeleccionado == -1) {
+				MessageBox(hWnd, L"No se ha seleccionado un cliente y vacuna para el registro de carnet", L"Error", MB_OK | MB_ICONERROR);
+				return;
+			}	
+
+			SendMessage(GetDlgItem(hWnd, CARNET_ALTA_CENTRO), WM_GETTEXT, sizeof(nuevo->centroDeVacunacion) / sizeof(nuevo->centroDeVacunacion[0]), (LPARAM)nuevo->centroDeVacunacion);
+			SendDlgItemMessage(hWnd, IDC_FECHADOSIS, DTM_GETSYSTEMTIME, NULL, (LPARAM) & (nuevo->fechaDosis));
+			nuevo->lote = GetDlgItemInt(hWnd, CARNET_ALTA_LOTE, NULL, false);
+			nuevo->dosis = GetDlgItemInt(hWnd, CARNET_ALTA_DOSIS, NULL, false);
+			nuevo->clienteID = clienteSeleccionado->ID;
+			nuevo->vacunaID = vacunaSeleccionada->ID;
+			nuevo->usuarioID = usuarioActual->ID;
+
+			wcscpy_s(nuevo->clienteCURP, clienteSeleccionado->curp);
+			wcscpy_s(nuevo->clienteNombre, clienteSeleccionado->nombres);
+
+			srand(time(0));
+			nuevo->ID = rand();
+
+
+			nuevo->siguiente = nullptr;
+			nuevo->anterior = nullptr;
+			if (rhead == nullptr) {
+				rhead = nuevo;
+			}
+			else {
+				while (ultimo->siguiente != nullptr)
+				{
+					ultimo = ultimo->siguiente;
+				}
+				ultimo->siguiente = nuevo;
+				nuevo->anterior = ultimo;
+			}
+
+			EndDialog(hWnd, 0);
+		}
+
+		void actualizarListBox(HWND hWnd) {
+			SendDlgItemMessage(hWnd, IDC_LIST_VACUNAS, LB_RESETCONTENT, NULL, NULL);
+			Vacuna* vptr = vhead;
+			if (vptr != nullptr) {
+				while (vptr->siguiente != nullptr) {
+					if (vptr->usuarioID == usuarioActual->ID) {
+						SendDlgItemMessage(hWnd, IDC_LIST_VACUNAS, LB_ADDSTRING, NULL, (LPARAM)vptr->marca);
+					}
+					vptr = vptr->siguiente;
+				}
+				if (vptr->usuarioID == usuarioActual->ID) {
+					SendDlgItemMessage(hWnd, IDC_LIST_VACUNAS, LB_ADDSTRING, NULL, (LPARAM)vptr->marca);
+				}
+			}
+
+			SendDlgItemMessage(hWnd, IDC_LIST_CLIENTES, LB_RESETCONTENT, NULL, NULL);
+			Cliente* cptr = chead;
+			if (cptr != nullptr) {
+				while (cptr->siguiente != nullptr) {
+					if (cptr->usuarioID == usuarioActual->ID) {
+						SendDlgItemMessage(hWnd, IDC_LIST_CLIENTES, LB_ADDSTRING, NULL, (LPARAM)(cptr->nombres));
+					}
+					cptr = cptr->siguiente;
+				}
+				if (cptr->usuarioID == usuarioActual->ID) {
+					SendDlgItemMessage(hWnd, IDC_LIST_CLIENTES, LB_ADDSTRING, NULL, (LPARAM)cptr->nombres);
+				}
+			}
+
+			SendDlgItemMessage(hWnd, IDC_LIST_CARNETS, LB_RESETCONTENT, NULL, NULL);
+			Carnet* rptr = rhead;
+			if (rptr != nullptr) {
+				while (rptr->siguiente != nullptr) {
+					if (rptr->usuarioID == usuarioActual->ID) {
+						wchar_t IDString[200];
+						swprintf_s(IDString, L"%d", rptr->ID);
+						SendDlgItemMessage(hWnd, IDC_LIST_CARNETS, LB_ADDSTRING, NULL, (LPARAM)(IDString));
+					}
+					rptr = rptr->siguiente;
+				}
+				if (rptr->usuarioID == usuarioActual->ID) {
+					wchar_t IDString[200];
+					swprintf_s(IDString, L"%d", rptr->ID);
+					SendDlgItemMessage(hWnd, IDC_LIST_CARNETS, LB_ADDSTRING, NULL, (LPARAM)IDString);
+				}
+			}
+
+		}
+
+		void actualizarCarnetListBox(HWND hWnd) {
+			SendDlgItemMessage(hWnd, IDC_CARNET_VACUNAS, LB_RESETCONTENT, NULL, NULL);
+			Vacuna* vptr = vhead;
+			if (vptr != nullptr) {
+				while (vptr->siguiente != nullptr) {
+					if (vptr->usuarioID == usuarioActual->ID) {
+						SendDlgItemMessage(hWnd, IDC_CARNET_VACUNAS, LB_ADDSTRING, NULL, (LPARAM)vptr->marca);
+					}
+					vptr = vptr->siguiente;
+				}
+				if (vptr->usuarioID == usuarioActual->ID) {
+					SendDlgItemMessage(hWnd, IDC_CARNET_VACUNAS, LB_ADDSTRING, NULL, (LPARAM)vptr->marca);
+				}
+			}
+
+			SendDlgItemMessage(hWnd, IDC_CARNET_CLIENTE, LB_RESETCONTENT, NULL, NULL);
+			Cliente* cptr = chead;
+			if (cptr != nullptr) {
+				while (cptr->siguiente != nullptr) {
+					if (cptr->usuarioID == usuarioActual->ID) {
+				
+						SendDlgItemMessage(hWnd, IDC_CARNET_CLIENTE, LB_ADDSTRING, NULL, (LPARAM)(cptr->nombres));
+					}
+					cptr = cptr->siguiente;
+				}
+				if (cptr->usuarioID == usuarioActual->ID) {
+					SendDlgItemMessage(hWnd, IDC_CARNET_CLIENTE, LB_ADDSTRING, NULL, (LPARAM)cptr->nombres);
+				}
+			}
+		}
+
 		void Login(HWND hWnd) {
 			wchar_t usuarioIngresado[200];
 			wchar_t contrasenaIngresada[200];
@@ -239,11 +402,10 @@ namespace Estructuras {
 			}
 			else
 			{
-				while (ptr != nullptr) {
+				while (ptr != nullptr && encontrado == false) {
 					if (wcscmp(ptr->usuario, usuarioIngresado) == 0 && wcscmp(ptr->contrasena, contrasenaIngresada) == 0) {
 						encontrado = true;
 						usuarioActual = ptr;
-						EndDialog(hWnd, 0);
 					}
 					else {
 						encontrado = false;
@@ -260,29 +422,7 @@ namespace Estructuras {
 			
 		}
 
-		void actualizarListBoxVacunas(HWND hWnd) {
-			SendDlgItemMessage(hWnd, IDC_LIST_VACUNAS, LB_RESETCONTENT, NULL, NULL);
-			Vacuna* ptr = vhead;
-			if (ptr != nullptr) {
-				while (ptr->siguiente != nullptr) {
-					SendDlgItemMessage(hWnd, IDC_LIST_VACUNAS, LB_ADDSTRING, NULL, (LPARAM)ptr->marca);
-					ptr = ptr->siguiente;
-				}
-				SendDlgItemMessage(hWnd, IDC_LIST_VACUNAS, LB_ADDSTRING, NULL, (LPARAM)ptr->marca);
-			}
-		}
 
-		void actualizarListBoxClientes(HWND hWnd) {
-			SendDlgItemMessage(hWnd, IDC_LIST_CLIENTES, LB_RESETCONTENT, NULL, NULL);
-			Cliente* ptr = chead;
-			if (ptr != nullptr) {
-				while (ptr->siguiente != nullptr) {
-					SendDlgItemMessage(hWnd, IDC_LIST_CLIENTES, LB_ADDSTRING, NULL, (LPARAM)ptr->nombres);
-					ptr = ptr->siguiente;
-				}
-				SendDlgItemMessage(hWnd, IDC_LIST_CLIENTES, LB_ADDSTRING, NULL, (LPARAM)ptr->nombres);
-			}
-		}
 
 		void GuardarUsuarios(HWND hWnd) {
 			OPENFILENAME openfilenameGU;
@@ -314,6 +454,100 @@ namespace Estructuras {
 				}
 			}
 		}
+
+		void GuardarClientes(HWND hWnd) {
+			OPENFILENAME openfilenameGC;
+			wchar_t guardarArchivoC[500];
+			ZeroMemory(&openfilenameGC, sizeof(openfilenameGC));
+			openfilenameGC.lStructSize = sizeof(openfilenameGC);
+			openfilenameGC.hwndOwner = hWnd;
+			openfilenameGC.lpstrFile = guardarArchivoC;
+			openfilenameGC.lpstrFilter = L"Archivo Binario\0*.bin";
+			openfilenameGC.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST;
+			openfilenameGC.lpstrFile[0] = NULL;
+			openfilenameGC.nMaxFile = sizeof(guardarArchivoC);
+			openfilenameGC.nFilterIndex = 0;
+			if (GetSaveFileName(&openfilenameGC) == true) {
+				ofstream escribir;
+				escribir.open(guardarArchivoC, ios::out | ios::binary | ios::trunc);
+				if (escribir.is_open()) {
+
+					if (chead != NULL) {
+						Cliente* cptr = chead;
+						while (cptr->siguiente != NULL)
+						{
+							escribir.write(reinterpret_cast<char*>(cptr), sizeof(Cliente));
+							cptr = cptr->siguiente;
+						}
+						escribir.write(reinterpret_cast<char*>(cptr), sizeof(Cliente));
+					}
+					escribir.close();
+				}
+			}
+		}
+
+		void GuardarVacunas(HWND hWnd) {
+			OPENFILENAME openfilenameGV;
+			wchar_t guardarArchivoV[500];
+			ZeroMemory(&openfilenameGV, sizeof(openfilenameGV));
+			openfilenameGV.lStructSize = sizeof(openfilenameGV);
+			openfilenameGV.hwndOwner = hWnd;
+			openfilenameGV.lpstrFile = guardarArchivoV;
+			openfilenameGV.lpstrFilter = L"Archivo Binario\0*.bin";
+			openfilenameGV.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST;
+			openfilenameGV.lpstrFile[0] = NULL;
+			openfilenameGV.nMaxFile = sizeof(guardarArchivoV);
+			openfilenameGV.nFilterIndex = 0;
+			if (GetSaveFileName(&openfilenameGV) == true) {
+				ofstream escribir;
+				escribir.open(guardarArchivoV, ios::out | ios::binary | ios::trunc);
+				if (escribir.is_open()) {
+
+					if (vhead != NULL) {
+						Vacuna* vptr = vhead;
+						while (vptr->siguiente != NULL)
+						{
+							escribir.write(reinterpret_cast<char*>(vptr), sizeof(Vacuna));
+							vptr = vptr->siguiente;
+						}
+						escribir.write(reinterpret_cast<char*>(vptr), sizeof(Vacuna));
+					}
+					escribir.close();
+				}
+			}
+		}
+
+		void GuardarCarnets(HWND hWnd) {
+			OPENFILENAME openfilenameGR;
+			wchar_t guardarArchivoR[500];
+			ZeroMemory(&openfilenameGR, sizeof(openfilenameGR));
+			openfilenameGR.lStructSize = sizeof(openfilenameGR);
+			openfilenameGR.hwndOwner = hWnd;
+			openfilenameGR.lpstrFile = guardarArchivoR;
+			openfilenameGR.lpstrFilter = L"Archivo Binario\0*.bin";
+			openfilenameGR.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST;
+			openfilenameGR.lpstrFile[0] = NULL;
+			openfilenameGR.nMaxFile = sizeof(guardarArchivoR);
+			openfilenameGR.nFilterIndex = 0;
+			if (GetSaveFileName(&openfilenameGR) == true) {
+				ofstream escribir;
+				escribir.open(guardarArchivoR, ios::out | ios::binary | ios::trunc);
+				if (escribir.is_open()) {
+
+					if (rhead != NULL) {
+						Carnet* rptr = rhead;
+						while (rptr->siguiente != NULL)
+						{
+							escribir.write(reinterpret_cast<char*>(rptr), sizeof(Carnet));
+							rptr = rptr->siguiente;
+						}
+						escribir.write(reinterpret_cast<char*>(rptr), sizeof(Carnet));
+					}
+					escribir.close();
+				}
+			}
+		}
+
 		void CargarUsuarios(HWND hWnd) {
 			OPENFILENAME openfilenameCU;
 			wchar_t abrirArchivoU[500];
@@ -352,6 +586,327 @@ namespace Estructuras {
 				}
 				leer.close();
 			}
+		}
+
+		void CargarClientes(HWND hWnd) {
+			OPENFILENAME openfilename;
+			wchar_t abrirArchivo[500];
+			ZeroMemory(&openfilename, sizeof(openfilename));
+			openfilename.lStructSize = sizeof(openfilename);
+			openfilename.hwndOwner = hWnd;
+			openfilename.lpstrFile = abrirArchivo;
+			openfilename.lpstrFilter = L"Archivo Binario\0*.bin";
+			openfilename.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST;
+			openfilename.lpstrFile[0] = NULL;
+			openfilename.nMaxFile = sizeof(abrirArchivo);
+			openfilename.nFilterIndex = 0;
+			if (GetOpenFileName(&openfilename) == true) {
+				ifstream leer;
+				leer.open(abrirArchivo, ios::in | ios::binary);
+				if (leer.is_open()) {
+					Cliente* actual = new Cliente;
+					leer.read(reinterpret_cast<char*>(actual), sizeof(Cliente));
+					while (!leer.eof()) {
+						actual->siguiente = nullptr;
+						actual->anterior = nullptr;
+
+						if (chead == nullptr) {
+							chead = actual;
+						}
+						else {
+							Cliente* ultimo = chead;
+							while (ultimo->siguiente != nullptr) {
+								ultimo = ultimo->siguiente;
+							};
+							ultimo->siguiente = actual;
+						}
+						actual = new Cliente;
+						leer.read((char*)actual, sizeof(Cliente));
+					}
+				}
+				leer.close();
+			}
+		}
+
+		void CargarVacunas(HWND hWnd) {
+			OPENFILENAME openfilename;
+			wchar_t abrirArchivo[500];
+			ZeroMemory(&openfilename, sizeof(openfilename));
+			openfilename.lStructSize = sizeof(openfilename);
+			openfilename.hwndOwner = hWnd;
+			openfilename.lpstrFile = abrirArchivo;
+			openfilename.lpstrFilter = L"Archivo Binario\0*.bin";
+			openfilename.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST;
+			openfilename.lpstrFile[0] = NULL;
+			openfilename.nMaxFile = sizeof(abrirArchivo);
+			openfilename.nFilterIndex = 0;
+			if (GetOpenFileName(&openfilename) == true) {
+				ifstream leer;
+				leer.open(abrirArchivo, ios::in | ios::binary);
+				if (leer.is_open()) {
+					Vacuna* actual = new Vacuna;
+					leer.read(reinterpret_cast<char*>(actual), sizeof(Vacuna));
+					while (!leer.eof()) {
+						actual->siguiente = nullptr;
+						actual->anterior = nullptr;
+
+						if (vhead == nullptr) {
+							vhead = actual;
+						}
+						else {
+							Vacuna* ultimo = vhead;
+							while (ultimo->siguiente != nullptr) {
+								ultimo = ultimo->siguiente;
+							};
+							ultimo->siguiente = actual;
+						}
+						actual = new Vacuna;
+						leer.read((char*)actual, sizeof(Vacuna));
+					}
+				}
+				leer.close();
+			}
+		}
+
+		void CargarCarnet(HWND hWnd) {
+			OPENFILENAME openfilename;
+			wchar_t abrirArchivo[500];
+			ZeroMemory(&openfilename, sizeof(openfilename));
+			openfilename.lStructSize = sizeof(openfilename);
+			openfilename.hwndOwner = hWnd;
+			openfilename.lpstrFile = abrirArchivo;
+			openfilename.lpstrFilter = L"Archivo Binario\0*.bin";
+			openfilename.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST;
+			openfilename.lpstrFile[0] = NULL;
+			openfilename.nMaxFile = sizeof(abrirArchivo);
+			openfilename.nFilterIndex = 0;
+			if (GetOpenFileName(&openfilename) == true) {
+				ifstream leer;
+				leer.open(abrirArchivo, ios::in | ios::binary);
+				if (leer.is_open()) {
+					Carnet* actual = new Carnet;
+					leer.read(reinterpret_cast<char*>(actual), sizeof(Carnet));
+					while (!leer.eof()) {
+						actual->siguiente = nullptr;
+						actual->anterior = nullptr;
+
+						if (rhead == nullptr) {
+							rhead = actual;
+						}
+						else {
+							Carnet* ultimo = rhead;
+							while (ultimo->siguiente != nullptr) {
+								ultimo = ultimo->siguiente;
+							};
+							ultimo->siguiente = actual;
+						}
+						actual = new Carnet;
+						leer.read((char*)actual, sizeof(Carnet));
+					}
+				}
+				leer.close();
+			}
+		}
+
+		void ClienteSeleccionado(HWND hWnd,WPARAM wParam) {
+
+			if (HIWORD(wParam) == LBN_SELCHANGE) {
+
+				int seleccionado = SendDlgItemMessage(hWnd, IDC_CARNET_CLIENTE, LB_GETCURSEL, NULL, NULL);
+
+				Cliente* ptr = chead;
+
+				for (int i = 0; i < seleccionado; i++) {
+					ptr = ptr->siguiente;
+				}
+				clienteSeleccionado = ptr;
+
+				SendDlgItemMessage(hWnd, CARNETS_ALTA_CLIENTE, WM_SETTEXT, NULL, (LPARAM)clienteSeleccionado->nombres);
+
+			}
+		}
+
+		void VacunaSeleccionada(HWND hWnd, WPARAM wParam) {
+
+			if (HIWORD(wParam) == LBN_SELCHANGE) {
+
+				int seleccionado = SendDlgItemMessage(hWnd, IDC_CARNET_VACUNAS, LB_GETCURSEL, NULL, NULL);
+
+				Vacuna* ptr = vhead;
+
+				
+				for (int i = 0; i < seleccionado; i++) {
+					ptr = ptr->siguiente;
+				}
+				vacunaSeleccionada = ptr;
+
+				SendDlgItemMessage(hWnd, VACUNAS_ALTA_MARCA, WM_SETTEXT, NULL, (LPARAM)vacunaSeleccionada->marca);
+
+			}
+		}
+
+		void ClienteActual(HWND hWnd, WPARAM wParam) {
+			if (HIWORD(wParam) == LBN_SELCHANGE) {
+
+				int seleccionado = SendDlgItemMessage(hWnd, IDC_LIST_CLIENTES, LB_GETCURSEL, NULL, NULL);
+
+				Cliente* ptr = chead;
+
+				for (int i = 0; i < seleccionado; i++) {
+					ptr = ptr->siguiente;
+				}
+				clienteActual = ptr;
+
+			}
+		}
+		void VacunaActual(HWND hWnd, WPARAM wParam) {
+			if (HIWORD(wParam) == LBN_SELCHANGE) {
+
+				int seleccionado = SendDlgItemMessage(hWnd, IDC_LIST_VACUNAS, LB_GETCURSEL, NULL, NULL);
+
+				Vacuna* ptr = vhead;
+
+
+				for (int i = 0; i < seleccionado; i++) {
+					ptr = ptr->siguiente;
+				}
+				vacunaActual = ptr;
+
+			}
+		}
+		void CarnetActual(HWND hWnd, WPARAM wParam) {
+			if (HIWORD(wParam) == LBN_SELCHANGE) {
+
+				int seleccionado = SendDlgItemMessage(hWnd, IDC_LIST_CARNETS, LB_GETCURSEL, NULL, NULL);
+
+				Carnet* ptr = rhead;
+
+
+				for (int i = 0; i < seleccionado; i++) {
+					ptr = ptr->siguiente;
+				}
+				carnetActual = ptr;
+
+			}
+		}
+
+		void EliminarCliente(HWND hWnd) {
+			int seleccionado = SendDlgItemMessage(hWnd, IDC_LIST_CLIENTES, LB_GETCURSEL, NULL, NULL);
+			if (seleccionado == -1) {
+				MessageBox(hWnd, L"No se ha seleccionado cliente para eliminar", L"Error", MB_OK | MB_ICONERROR);
+				return;
+			}
+
+			if (chead == NULL || clienteActual == NULL) {
+
+				return;
+			}
+			if (clienteActual == chead) {
+				chead = clienteActual->siguiente;
+			}
+			if (clienteActual->siguiente != NULL) {
+				clienteActual->siguiente->anterior = clienteActual->anterior;
+			}
+			if (clienteActual->anterior != NULL) {
+				clienteActual->anterior->siguiente = clienteActual->siguiente;
+			}
+
+			free(clienteActual);
+			actualizarListBox(hWnd);
+		}
+		void EliminarVacuna(HWND hWnd) {
+			int seleccionado = SendDlgItemMessage(hWnd, IDC_LIST_VACUNAS, LB_GETCURSEL, NULL, NULL);
+			if (seleccionado == -1) {
+				MessageBox(hWnd, L"No se ha seleccionado vacuna para eliminar", L"Error", MB_OK | MB_ICONERROR);
+				return;
+			}
+
+			if (vhead == NULL || vacunaActual == NULL) {
+
+				return;
+			}
+			if (vacunaActual == vhead) {
+				vhead = vacunaActual->siguiente;
+			}
+			if (vacunaActual->siguiente != NULL) {
+				vacunaActual->siguiente->anterior = vacunaActual->anterior;
+			}
+			if (vacunaActual->anterior != NULL) {
+				vacunaActual->anterior->siguiente = vacunaActual->siguiente;
+			}
+
+			free(clienteActual);
+			actualizarListBox(hWnd);
+		}
+		void EliminarCarnet(HWND hWnd) {
+			int seleccionado = SendDlgItemMessage(hWnd, IDC_LIST_CARNETS, LB_GETCURSEL, NULL, NULL);
+			if (seleccionado == -1) {
+				MessageBox(hWnd, L"No se ha seleccionado carnet para eliminar", L"Error", MB_OK | MB_ICONERROR);
+				return;
+			}
+
+			if (rhead == NULL || carnetActual == NULL) {
+
+				return;
+			}
+			if (carnetActual == rhead) {
+				rhead = carnetActual->siguiente;
+			}
+			if (carnetActual->siguiente != NULL) {
+				carnetActual->siguiente->anterior = carnetActual->anterior;
+			}
+			if (carnetActual->anterior != NULL) {
+				carnetActual->anterior->siguiente = carnetActual->siguiente;
+			}
+
+			free(clienteActual);
+			actualizarListBox(hWnd);
+		}
+		int resultadoBinario(int arrayID[], int izquierda, int derecha, int target) {
+			if (derecha >= izquierda) {
+				int mitad = izquierda + (derecha - izquierda) / 2;
+				if (arrayID[mitad] == target) {
+					return mitad;
+				}
+				if (arrayID[mitad] > target) {
+					return resultadoBinario(arrayID, izquierda, mitad - 1, target);
+				}
+				else {
+					return resultadoBinario(arrayID, mitad + 1, derecha, target);
+				}
+
+			}
+			return -1;
+		}
+		void busquedaBinaria(HWND hWnd) {
+
+			wchar_t IDIngresada[200];
+			SendMessage(GetDlgItem(hWnd, INICIO_USUARIO), WM_GETTEXT, sizeof(IDIngresada) / sizeof(IDIngresada[0]), (LPARAM)IDIngresada);
+			int target;
+			int arrayID[30];
+			int n = sizeof(arrayID) / sizeof(arrayID[0]);
+			int izquierda = 0;
+			int derecha = (sizeof(arrayID) / sizeof(arrayID[0])) - 1;
+			
+			int aux = 0;
+			Carnet* search = rhead;
+
+			if (rhead == nullptr) {
+				return;
+			}
+			else {
+				while (search->siguiente != nullptr)
+				{
+					arrayID[aux] = rhead->ID;
+					aux++;
+					search = search->siguiente;
+				}
+				arrayID[aux] = rhead->ID;
+			}
+			sort(arrayID, arrayID + n);
+
+
+
 		}
 	};
 	Validaciones validacion;
@@ -396,46 +951,90 @@ BOOL CALLBACK PrincipalProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 	{
 		case WM_INITDIALOG:
 		{
-
+			Estructuras::validacion.actualizarListBox(hWnd);
 		} break;
 
 		case WM_COMMAND:
 		{
 			switch (LOWORD(wParam)) {
-			case ID_GUARDARDATOS_GUARDARUSUARIOS:
-				Estructuras::validacion.GuardarUsuarios(hWnd);
-				break;
-			case ID_CARGARDATOS_CARGARUSUARIOS:
-				Estructuras::validacion.CargarUsuarios(hWnd);
-				break;
-			case ID_USUARIO_REGISTRODEUSUARIO:
-				DialogBox(hInstGlobal, MAKEINTRESOURCE(IDD_USUARIO_REGISTRO), hWnd, (DLGPROC)RegistroProc);
-				break;
-			case ID_USUARIO_CERRARSESION:
-				EndDialog(hWnd, 0);
-				DialogBox(hInstGlobal, MAKEINTRESOURCE(IDD_USUARIO_INICIO_SESION), hWnd, (DLGPROC)LoginProc);
-				return true;
+				case IDC_LIST_VACUNAS:
+					Estructuras::validacion.VacunaActual(hWnd,wParam);
+					break;
+				case IDC_LIST_CLIENTES:
+					Estructuras::validacion.ClienteActual(hWnd, wParam);
+					break;
+				case IDC_LIST_CARNETS:
+					Estructuras::validacion.CarnetActual(hWnd, wParam);
+					break;
+				case ID_GUARDARDATOS_GUARDARUSUARIOS:
+					Estructuras::validacion.GuardarUsuarios(hWnd);
+					break;
+				case ID_GUARDARDATOS_GUARDARCLIENTES:
+					Estructuras::validacion.GuardarClientes(hWnd);
+					break;
+				case ID_GUARDARDATOS_GUARDARVACUNAS:
+					Estructuras::validacion.GuardarVacunas(hWnd);
+					break;
+				case ID_GUARDARDATOS_GUARDARCARNETS:
+					Estructuras::validacion.GuardarCarnets(hWnd);
+					break;
+				case ID_CARGARDATOS_CARGARUSUARIOS:
+					Estructuras::validacion.CargarUsuarios(hWnd);
+					Estructuras::validacion.actualizarListBox(hWnd);
+					break;
+				case ID_CARGARDATOS_CARGARCLIENTES:
+					Estructuras::validacion.CargarClientes(hWnd);
+					Estructuras::validacion.actualizarListBox(hWnd);
+					break;
+				case ID_CARGARDATOS_CARGARVACUNAS:
+					Estructuras::validacion.CargarVacunas(hWnd);
+					Estructuras::validacion.actualizarListBox(hWnd);
+					break;
+				case ID_CARGARDATOS_CARGARCARNETS:
+					Estructuras::validacion.CargarCarnet(hWnd);
+					Estructuras::validacion.actualizarListBox(hWnd);
+					break;
+				case ID_VACUNAS_BAJADEVACUNA:
+					Estructuras::validacion.EliminarVacuna(hWnd);
+					break;
+				case ID_CLIENTES_BAJADECLIENTE:
+					Estructuras::validacion.EliminarCliente(hWnd);
+					break;
+				case ID_CARNETS_BAJADECARNET:
+					Estructuras::validacion.EliminarCarnet(hWnd);
+					break;
+				case ID_USUARIO_REGISTRODEUSUARIO:
+					DialogBox(hInstGlobal, MAKEINTRESOURCE(IDD_USUARIO_REGISTRO), hWnd, (DLGPROC)RegistroProc);
+					break;
+				case ID_USUARIO_CERRARSESION:
+					EndDialog(hWnd, 0);
+					return true;
 
-			case ID_VACUNAS_ALTADEVACUNA:
-				DialogBox(hInstGlobal, MAKEINTRESOURCE(IDD_VACUNAS_ALTA), hWnd, (DLGPROC)VacunasAltaProc);
-				Estructuras::validacion.actualizarListBoxVacunas(hWnd);
-				break;
-			case ID_CLIENTES_ALTADECLIENTE:
-				DialogBox(hInstGlobal, MAKEINTRESOURCE(IDD_CLIENTES_ALTA), hWnd, (DLGPROC)ClientesAltaProc);
-				Estructuras::validacion.actualizarListBoxClientes(hWnd);
-				break;
+				case ID_VACUNAS_ALTADEVACUNA:
+					DialogBox(hInstGlobal, MAKEINTRESOURCE(IDD_VACUNAS_ALTA), hWnd, (DLGPROC)VacunasAltaProc);
+					Estructuras::validacion.actualizarListBox(hWnd);
+					break;
+				case ID_CLIENTES_ALTADECLIENTE:
+					DialogBox(hInstGlobal, MAKEINTRESOURCE(IDD_CLIENTES_ALTA), hWnd, (DLGPROC)ClientesAltaProc);
+					Estructuras::validacion.actualizarListBox(hWnd);
+					break;
+				case ID_CARNETS_ALTADECARNET:
+					DialogBox(hInstGlobal, MAKEINTRESOURCE(IDD_CARNET_ALTA), hWnd, (DLGPROC)CarnetsAltaProc);
+					Estructuras::validacion.actualizarListBox(hWnd);
+					break;
+
+				case ID_CARNETS_BUSQUEDA:
+					DialogBox(hInstGlobal, MAKEINTRESOURCE(IDD_CARNET_BUSQUEDA), hWnd, (DLGPROC)CarnetsBusquedaProc);
+					break;
 			}
+
+			
 
 
 		} break;
 		case WM_CLOSE:
 		{
 			DestroyWindow(ghDlg);
-			return true;
-		}
-		case WM_DESTROY: 
-		{
-			PostQuitMessage(0);
 			return true;
 		}
 	
@@ -472,7 +1071,6 @@ BOOL CALLBACK LoginProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 				case BTN_ACEPTAR_USUARIO_INICIO:
 					Estructuras::validacion.Login(hWnd);
-					Estructuras::validacion.actualizarListBoxClientes(hWnd);
 				break;
 
 				case BTN_CERRAR_USUARIO_INICIO:
@@ -601,3 +1199,75 @@ BOOL CALLBACK ClientesAltaProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 	return false;
 }
 
+
+BOOL CALLBACK CarnetsAltaProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	switch (message)
+	{
+		case WM_INITDIALOG:
+		{
+			Estructuras::validacion.actualizarCarnetListBox(hWnd);
+		} break;
+
+		case WM_COMMAND:
+		{
+			switch (LOWORD(wParam)) {
+
+				case IDC_CARNET_CLIENTE:
+					Estructuras::validacion.ClienteSeleccionado(hWnd, wParam);
+					
+					break;
+				case IDC_CARNET_VACUNAS:
+					Estructuras::validacion.VacunaSeleccionada(hWnd, wParam);
+					break;
+				case BTN_ACEPTAR_CARNET_ALTA:
+					Estructuras::validacion.AltaDeCarnet(hWnd);
+					break;
+				case BTN_CERRAR_CARNET_ALTA:
+					EndDialog(hWnd, 0);
+					return true;
+			}
+		} break;
+		case WM_CLOSE:
+		{
+			EndDialog(hWnd, 0);
+			return true;
+		}
+
+	}
+	return false;
+}
+
+BOOL CALLBACK CarnetsBusquedaProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	switch (message)
+	{
+	case WM_INITDIALOG:
+	{
+		
+	} break;
+
+	case WM_COMMAND:
+	{
+		switch (LOWORD(wParam)) {
+
+			case IDC_CARNET_BUSCARNOMBRE:
+
+				break;
+			case IDC_CARNET_BUSCARID:
+
+				break;
+			case BTN_CERRAR_CARNET_BUSQUEDA:
+				EndDialog(hWnd, 0);
+				return true;
+			}
+	} break;
+	case WM_CLOSE:
+	{
+		EndDialog(hWnd, 0);
+		return true;
+	}
+
+	}
+	return false;
+}

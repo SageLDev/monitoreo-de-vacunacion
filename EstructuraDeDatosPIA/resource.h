@@ -8,8 +8,9 @@
 #define IDD_USUARIO_INICIO_SESION       107
 #define IDD_VACUNAS_ALTA                109
 #define IDD_CLIENTES_ALTA               111
-#define IDR_MENU1                       113
+#define IDD_CARNET_ALTA                 112
 #define IDD_LOGIN                       113
+#define IDD_CARNET_BUSQUEDA             113
 #define BTN_CERRAR_CLIENTES_ALTA        1003
 #define CLIENTES_ALTA_APELLIDO_PATERNO  1004
 #define CLIENTES_ALTA_CURP              1005
@@ -44,12 +45,32 @@
 #define VACUNAS_ALTA_TIPO               1034
 #define VACUNAS_ALTA_MARCA              1035
 #define VACUNAS_ALTA_DOSIS              1036
+#define CARNETS_ALTA_CLIENTE            1036
 #define VACUNAS_ALTA_CLAVE              1037
+#define VACUNAS_ALTA_MARCA2             1037
 #define VACUNAS_ALTA_PRECIO             1038
+#define CARNETS_ALTA_CLIENTE2           1038
 #define VACUNAS_ALTA_DESCRIPCION        1039
 #define BTN_CLIENTES_ALTA_IDENTIDAD     1040
+#define CARNET_ALTA_CENTRO              1040
 #define IDC_LIST_CLIENTES               1041
+#define VACUNAS_ALTA_MARCA3             1041
+#define IDC_LIST_CARNETS                1042
+#define CARNETS_ALTA_CLIENTE3           1042
 #define IDC_LIST_VACUNAS                1043
+#define IDC_CARNET_CLIENTE              1043
+#define VACUNAS_ALTA_MARCA4             1043
+#define IDC_CARNET_VACUNAS              1044
+#define VACUNAS_ALTA_MARCA5             1044
+#define BTN_CERRAR_CARNET_ALTA          1046
+#define BTN_ACEPTAR_CARNET_ALTA         1047
+#define CARNET_ALTA_DOSIS               1048
+#define CARNET_ALTA_LOTE                1049
+#define IDC_FECHADOSIS                  1050
+#define IDC_CARNET_BUSCARNOMBRE         1052
+#define IDC_BUTTON2                     1053
+#define IDC_CARNET_BUSCARID             1053
+#define BTN_CERRAR_CARNET_BUSQUEDA      1054
 #define ID_USUARIO_INICIODESESION       40001
 #define ID_USUARIO_CERRARSESION         40002
 #define ID_VACUNAS_ALTADEVACUNA         40003
@@ -66,6 +87,17 @@
 #define ID_DATOS_CARGAR                 40014
 #define ID_CARGAR_CARGARUSUARIOS        40015
 #define ID_USUARIO_REGISTRARUSUARIO     40016
+#define ID_CARNETS_ALTADECARNET         40017
+#define ID_CARNETS_BAJADECARNET         40018
+#define ID_GUARDARDATOS_GUARDARCLIENTES 40019
+#define ID_GUARDARDATOS_GUARDARVACUNAS  40020
+#define ID_GUARDARDATOS_GUARDARCARNETS  40021
+#define ID_CARGARDATOS_CARGARCLIENTES   40022
+#define ID_CARGARDATOS_CARGARVACUNAS    40023
+#define ID_CARGARDATOS_CARGARCARNETS    40024
+#define ID_CARNETS_BUSQUEDAPORNOMBRE    40025
+#define ID_CARNETS_BUSQUEDAPORID        40026
+#define ID_CARNETS_BUSQUEDA             40027
 #define IDC_STATIC                      -1
 
 // Next default values for new objects
@@ -73,8 +105,8 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        114
-#define _APS_NEXT_COMMAND_VALUE         40017
-#define _APS_NEXT_CONTROL_VALUE         1043
+#define _APS_NEXT_COMMAND_VALUE         40028
+#define _APS_NEXT_CONTROL_VALUE         1055
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
